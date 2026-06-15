@@ -13,14 +13,14 @@
 <div id="scorebar">
   <div class="player-indicator" id="p1-ind">
     <div class="chip-icon p1"></div>
-    <span>Pink</span>
+    <span>Blue</span>
     <span class="cap-count" id="p1-caps">(0 cap.)</span>
     <div class="turn-dot"></div>
   </div>
   <span style="color:var(--border)">│</span>
   <div class="player-indicator inactive" id="p2-ind">
     <div class="chip-icon p2"></div>
-    <span>Purple</span>
+    <span>Black</span>
     <span class="cap-count" id="p2-caps">(0 cap.)</span>
     <div class="turn-dot"></div>
   </div>
@@ -194,7 +194,7 @@ function executeMove(fromR, fromC, toR, toC, capR, capC) {
   render();
 
   if (checkWin()) return;
-  setStatus(mustCapture ? 'Capture available — you must take it!' : `${turn===P1?'Pink':'Purple'}'s turn`);
+  setStatus(mustCapture ? 'Capture available — you must take it!' : `${turn===P1?'Blue':'Black'}'s turn`);
 }
 
 function checkWin() {
@@ -211,14 +211,14 @@ function checkWin() {
       }
     }
   }
-  if (p1alive === 0 || (!hasMoves && turn === P1)) { showWin('Purple'); return true; }
-  if (p2alive === 0 || (!hasMoves && turn === P2)) { showWin('Pink'); return true; }
+  if (p1alive === 0 || (!hasMoves && turn === P1)) { showWin('Black'); return true; }
+  if (p2alive === 0 || (!hasMoves && turn === P2)) { showWin('Blue'); return true; }
   return false;
 }
 
 function showWin(winner) {
   document.getElementById('modal-title').textContent = `${winner} Wins!`;
-  document.getElementById('modal-sub').textContent = `Captured: Pink ${capturedP1} | Purple ${capturedP2} — ${moveHistory.length} moves played`;
+  document.getElementById('modal-sub').textContent = `Captured: Blue ${capturedP1} | Black ${capturedP2} — ${moveHistory.length} moves played`;
   document.getElementById('overlay').classList.add('show');
 }
 
@@ -283,7 +283,7 @@ function render() {
         const el = document.createElement('div');
         el.className = 'piece ' + (isP1(piece) ? 'p1' : 'p2') + (isKing(piece) ? ' king' : '');
         if (selected && selected[0]===r && selected[1]===c) el.classList.add('selected-piece');
-        el.setAttribute('aria-label', `${isP1(piece)?'Pink':'Purple'}${isKing(piece)?' king':''} at ${colName(c)}${8-r}`);
+        el.setAttribute('aria-label', `${isP1(piece)?'Blue':'Black'}${isKing(piece)?' king':''} at ${colName(c)}${8-r}`);
         cell.appendChild(el);
       }
 

@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkers</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d2e;
+      --surface2: #252840;
+      --border: #2e3250;
+      --accent: #6c63ff;
+      --accent2: #ff6584;
+      --text: #e2e8f0;
+      --text2: #94a3b8;
+      --board-light: #f0d9b5;
+      --board-dark: #b58863;
+      --board-selected: #7fc97f;
+      --board-move: rgba(127, 201, 127, 0.45);
+      --board-capture: rgba(255, 100, 100, 0.35);
+      --p1: #e8e8e8;
+      --p1-king: #ffffff;
+      --p2: #2a2a2a;
+      --p2-king: #111111;
+      --p1-border: #aaaaaa;
+      --p2-border: #555555;
+      --radius: 12px;
+      --cell: min(52px, 10.5vw);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      gap: 20px;
+    }
+
+    h1 {
+      font-size: clamp(1.6rem, 5vw, 2.4rem);
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* ── Score bar ────────────────────────── */
+    #scorebar {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 24px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+
+    .player-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: opacity 0.2s;
+    }
+    .player-indicator.inactive { opacity: 0.35; }
+
+    .chip-icon {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      border: 2px solid;
+      flex-shrink: 0;
+    }
+    .chip-icon.p1 { background: var(--p1); border-color: var(--p1-border); }
+    .chip-icon.p2 { background: var(--p2); border-color: var(--p2-border); }
+
+    .turn-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.4); opacity: 0.6; }
+    }
+    .player-indicator.inactive .turn-dot { display: none; }
+
+    /* ── Board wrapper ────────────────────── */
+    #board-wrap {
+      position: relative;
+    }
+
+    #board {
+      display: grid;
+      grid-template-columns: repeat(8, var(--cell));
+      grid-template-rows: repeat(8, var(--cell));
+      border: 3px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+    }
+
+    .cell {
+      width: var(--cell); height: var(--cell);
+      position: relative;
+      cursor: default;
+      transition: background 0.15s;
+    }
+    .cell.light { background: var(--board-light); }
+    .cell.dark  { background: var(--board-dark); }
+    .cell.selected { background: var(--board-selected) !important; }
+    .cell.move-target { cursor: pointer; }
+    .cell.move-target::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--board-move);
+    }
+    .cell.capture-target::after {
+      background: var(--board-capture);
+    }
+    .cell.move-target:hover::after {
+      background: rgba(127, 201, 127, 0.65);
+    }
+    .cell.last-from { box-shadow: inset 0 0 0 3px rgba(108,99,255,0.5); }
+    .cell.last-to   { box-shadow: inset 0 0 0 3px rgba(108,99,255,0.8); }
+
+    /* ── Pieces ───────────────────────────── */
+    .piece {
+      position: absolute;
+      inset: 8%;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: calc(var(--cell) * 0.35);
+    }
+    .piece.p1 {
+      background: radial-gradient(circle at 35% 35%, #ffffff, #cccccc);
+      border: 2px solid var(--p1-border);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.8);
+    }
+    .piece.p2 {
+      background: radial-gradient(circle at 35% 35%, #555555, #111111);
+      border: 2px solid var(--p2-border);
+      box-shadow: 0 3px 8px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.15);
+    }
+    .piece.king::after {
+      content: '♛';
+      position: absolute;
+      font-size: calc(var(--cell) * 0.3);
+      line-height: 1;
+    }
+    .piece.p1.king::after { color: #b8860b; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
+    .piece.p2.king::after { color: #ffd700; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+
+    .piece:hover { transform: scale(1.08); }
+    .piece.selected-piece {
+      transform: scale(1.12) translateY(-4%);
+      box-shadow: 0 6px 16px rgba(108,99,255,0.5), inset 0 1px 2px rgba(255,255,255,0.8);
+    }
+
+    /* ── Controls ─────────────────────────── */
+    #controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    button {
+      padding: 10px 22px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+    }
+    button:hover { background: var(--surface2); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    button:active { transform: translateY(0); }
+    button.primary { background: var(--accent); border-color: transparent; }
+    button.primary:hover { background: #7b72ff; }
+
+    /* ── Status message ───────────────────── */
+    #status {
+      font-size: 0.85rem;
+      color: var(--text2);
+      min-height: 18px;
+      text-align: center;
+    }
+
+    /* ── Overlay ──────────────────────────── */
+    #overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(6px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    #overlay.show { display: flex; }
+
+    #modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 40px 48px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+      animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes pop {
+      from { transform: scale(0.7); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+    #modal h2 { font-size: 2rem; }
+    #modal p  { color: var(--text2); font-size: 1rem; }
+
+    /* captured counter */
+    .cap-count {
+      font-size: 0.78rem;
+      color: var(--text2);
+      font-weight: 500;
+    }
+
+    /* move history */
+    #history-wrap {
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease;
+    }
+    #history-wrap.open { max-height: 200px; }
+
+    #history {
+      width: min(416px, 85vw);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      font-size: 0.78rem;
+      color: var(--text2);
+      overflow-y: auto;
+      max-height: 160px;
+      line-height: 1.8;
+      font-family: 'Courier New', monospace;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Checkers</h1>
+
+<div id="scorebar">
+  <div class="player-indicator" id="p1-ind">
+    <div class="chip-icon p1"></div>
+    <span>White</span>
+    <span class="cap-count" id="p1-caps">(0 cap.)</span>
+    <div class="turn-dot"></div>
+  </div>
+  <span style="color:var(--border)">│</span>
+  <div class="player-indicator inactive" id="p2-ind">
+    <div class="chip-icon p2"></div>
+    <span>Black</span>
+    <span class="cap-count" id="p2-caps">(0 cap.)</span>
+    <div class="turn-dot"></div>
+  </div>
+</div>
+
+<div id="board-wrap">
+  <div id="board" role="grid" aria-label="Checkers board"></div>
+</div>
+
+<div id="status">Select a piece to move</div>
+
+<div id="controls">
+  <button class="primary" onclick="newGame()">New Game</button>
+  <button onclick="toggleHistory()">Move Log</button>
+</div>
+
+<div id="history-wrap">
+  <div id="history"></div>
+</div>
+
+<!-- Win overlay -->
+<div id="overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div id="modal">
+    <div style="font-size:3rem">🏆</div>
+    <h2 id="modal-title"></h2>
+    <p id="modal-sub"></p>
+    <button class="primary" onclick="newGame()">Play Again</button>
+  </div>
+</div>
+
+<style>
+  #createos-badge {
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 999px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+    font-size: 11px;
+    font-weight: 500;
+    color: #374151;
+    text-decoration: none;
+    font-family: system-ui, sans-serif;
+  }
+  #createos-badge:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+  #createos-badge img { width: 14px; height: 14px; }
+</style>
+<a id="createos-badge" href="https://createos.sh/app" target="_blank" rel="noopener noreferrer">
+  <img src="https://nodeops.network/SymbolBlack.svg" alt="" />
+  Built with CreateOS
+</a>
+
+<script>
+// ──────────────────────────────────────────────
+//  CHECKERS ENGINE
+// ──────────────────────────────────────────────
+
+const EMPTY = 0, P1 = 1, P2 = 2, P1K = 3, P2K = 4;
+
+let board = [], turn = P1, selected = null;
+let validMoves = [], mustCapture = false;
+let capturedP1 = 0, capturedP2 = 0;
+let moveHistory = [];
+let lastFrom = null, lastTo = null;
+let histOpen = false;
+
+function newGame() {
+  board = Array.from({length: 8}, () => Array(8).fill(EMPTY));
+  // Place pieces: P2 (black) rows 0-2 on dark squares, P1 (white) rows 5-7
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      if ((r + c) % 2 === 1) {
+        if (r < 3) board[r][c] = P2;
+        else if (r > 4) board[r][c] = P1;
+      }
+    }
+  }
+  turn = P1;
+  selected = null; validMoves = [];
+  capturedP1 = 0; capturedP2 = 0;
+  moveHistory = [];
+  lastFrom = null; lastTo = null;
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('history').textContent = '';
+  mustCapture = hasMandatoryCapture(turn);
+  render();
+  setStatus(mustCapture ? 'Capture available — you must take it!' : 'Select a piece to move');
+}
+
+// ── Move generation ────────────────────────────
+
+function isP1(v) { return v === P1 || v === P1K; }
+function isP2(v) { return v === P2 || v === P2K; }
+function isKing(v) { return v === P1K || v === P2K; }
+function isMine(v, player) { return player === P1 ? isP1(v) : isP2(v); }
+function isEnemy(v, player) { return player === P1 ? isP2(v) : isP1(v); }
+function inBounds(r, c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
+
+function moveDirs(piece) {
+  if (piece === P1) return [[-1,-1],[-1,1]];
+  if (piece === P2) return [[1,-1],[1,1]];
+  return [[-1,-1],[-1,1],[1,-1],[1,1]]; // kings
+}
+
+function getCaptures(r, c, brd, player) {
+  const piece = brd[r][c];
+  const dirs = moveDirs(piece);
+  const caps = [];
+  for (const [dr, dc] of dirs) {
+    const mr = r + dr, mc = c + dc;
+    const lr = r + dr*2, lc = c + dc*2;
+    if (inBounds(lr, lc) && isEnemy(brd[mr][mc], player) && brd[lr][lc] === EMPTY) {
+      caps.push({ to: [lr, lc], cap: [mr, mc] });
+    }
+  }
+  return caps;
+}
+
+function getSimpleMoves(r, c, brd, player) {
+  const piece = brd[r][c];
+  const dirs = moveDirs(piece);
+  const moves = [];
+  for (const [dr, dc] of dirs) {
+    const nr = r + dr, nc = c + dc;
+    if (inBounds(nr, nc) && brd[nr][nc] === EMPTY) {
+      moves.push({ to: [nr, nc], cap: null });
+    }
+  }
+  return moves;
+}
+
+function hasMandatoryCapture(player) {
+  for (let r = 0; r < 8; r++)
+    for (let c = 0; c < 8; c++)
+      if (isMine(board[r][c], player) && getCaptures(r, c, board, player).length) return true;
+  return false;
+}
+
+function getValidMoves(r, c) {
+  const piece = board[r][c];
+  if (!isMine(piece, turn)) return [];
+  const caps = getCaptures(r, c, board, turn);
+  if (mustCapture && caps.length === 0) return [];
+  return caps.length ? caps : getSimpleMoves(r, c, board, turn);
+}
+
+// ── Execute a move ─────────────────────────────
+
+function promote(r, c) {
+  if (board[r][c] === P1 && r === 0) board[r][c] = P1K;
+  if (board[r][c] === P2 && r === 7) board[r][c] = P2K;
+}
+
+function colName(c) { return String.fromCharCode(65+c); }
+
+function executeMove(fromR, fromC, toR, toC, capR, capC) {
+  const piece = board[fromR][fromC];
+  const notation = `${colName(fromC)}${8-fromR}→${colName(toC)}${8-toR}${capR!=null?'✕':''}`;
+  board[toR][toC] = piece;
+  board[fromR][fromC] = EMPTY;
+  let chainCapture = false;
+
+  if (capR != null) {
+    if (isP1(board[capR][capC])) capturedP2++;
+    else capturedP1++;
+    board[capR][capC] = EMPTY;
+    promote(toR, toC);
+    // Check multi-jump
+    const further = getCaptures(toR, toC, board, turn);
+    if (further.length > 0) {
+      // must continue capture from toR,toC
+      selected = [toR, toC];
+      validMoves = further;
+      chainCapture = true;
+      lastFrom = [fromR, fromC]; lastTo = [toR, toC];
+      moveHistory.push(notation);
+      logMove(notation);
+      render();
+      setStatus('Capture chain — keep jumping!');
+      return;
+    }
+  } else {
+    promote(toR, toC);
+  }
+
+  lastFrom = [fromR, fromC]; lastTo = [toR, toC];
+  moveHistory.push(notation);
+  logMove(notation);
+  selected = null; validMoves = [];
+
+  // Switch turn
+  turn = turn === P1 ? P2 : P1;
+  mustCapture = hasMandatoryCapture(turn);
+  render();
+
+  if (checkWin()) return;
+  setStatus(mustCapture ? 'Capture available — you must take it!' : `${turn===P1?'White':'Black'}'s turn`);
+}
+
+function checkWin() {
+  let p1alive = 0, p2alive = 0;
+  for (let r=0;r<8;r++) for(let c=0;c<8;c++) {
+    if (isP1(board[r][c])) p1alive++;
+    if (isP2(board[r][c])) p2alive++;
+  }
+  // Also check no moves
+  let hasMoves = false;
+  outer: for (let r=0;r<8;r++) for(let c=0;c<8;c++) {
+    if (isMine(board[r][c], turn)) {
+      if (getCaptures(r,c,board,turn).length || getSimpleMoves(r,c,board,turn).length) {
+        hasMoves = true; break outer;
+      }
+    }
+  }
+  if (p1alive === 0 || (!hasMoves && turn === P1)) { showWin('Black'); return true; }
+  if (p2alive === 0 || (!hasMoves && turn === P2)) { showWin('White'); return true; }
+  return false;
+}
+
+function showWin(winner) {
+  document.getElementById('modal-title').textContent = `${winner} Wins!`;
+  document.getElementById('modal-sub').textContent = `Captured: White ${capturedP1} | Black ${capturedP2} — ${moveHistory.length} moves played`;
+  document.getElementById('overlay').classList.add('show');
+}
+
+// ── Interaction ────────────────────────────────
+
+function handleCell(r, c) {
+  const piece = board[r][c];
+
+  // Click a valid move target
+  if (selected) {
+    const mv = validMoves.find(m => m.to[0]===r && m.to[1]===c);
+    if (mv) {
+      const [fr,fc] = selected;
+      executeMove(fr, fc, r, c, mv.cap ? mv.cap[0] : null, mv.cap ? mv.cap[1] : null);
+      return;
+    }
+  }
+
+  // Click own piece
+  if (isMine(piece, turn)) {
+    const moves = getValidMoves(r, c);
+    if (moves.length === 0 && mustCapture) {
+      setStatus('You must make a capture this turn!');
+      return;
+    }
+    selected = [r, c];
+    validMoves = moves;
+    render();
+    if (moves.length === 0) setStatus('No moves available for this piece');
+    return;
+  }
+
+  // Deselect
+  selected = null; validMoves = [];
+  render();
+}
+
+// ── Render ─────────────────────────────────────
+
+function render() {
+  const boardEl = document.getElementById('board');
+  boardEl.innerHTML = '';
+
+  const moveSet = new Set(validMoves.map(m => m.to[0]*8+m.to[1]));
+  const captureSet = new Set(validMoves.filter(m=>m.cap).map(m => m.to[0]*8+m.to[1]));
+
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'cell ' + ((r+c)%2===0 ? 'light' : 'dark');
+      cell.setAttribute('role', 'gridcell');
+
+      if (selected && selected[0]===r && selected[1]===c) cell.classList.add('selected');
+      if (lastFrom && lastFrom[0]===r && lastFrom[1]===c) cell.classList.add('last-from');
+      if (lastTo && lastTo[0]===r && lastTo[1]===c) cell.classList.add('last-to');
+
+      const key = r*8+c;
+      if (moveSet.has(key)) {
+        cell.classList.add('move-target');
+        if (captureSet.has(key)) cell.classList.add('capture-target');
+      }
+
+      const piece = board[r][c];
+      if (piece !== EMPTY) {
+        const el = document.createElement('div');
+        el.className = 'piece ' + (isP1(piece) ? 'p1' : 'p2') + (isKing(piece) ? ' king' : '');
+        if (selected && selected[0]===r && selected[1]===c) el.classList.add('selected-piece');
+        el.setAttribute('aria-label', `${isP1(piece)?'White':'Black'}${isKing(piece)?' king':''} at ${colName(c)}${8-r}`);
+        cell.appendChild(el);
+      }
+
+      cell.addEventListener('click', () => handleCell(r, c));
+      boardEl.appendChild(cell);
+    }
+  }
+
+  // Update indicators
+  const p1ind = document.getElementById('p1-ind');
+  const p2ind = document.getElementById('p2-ind');
+  p1ind.classList.toggle('inactive', turn !== P1);
+  p2ind.classList.toggle('inactive', turn !== P2);
+  document.getElementById('p1-caps').textContent = `(${capturedP2} cap.)`;
+  document.getElementById('p2-caps').textContent = `(${capturedP1} cap.)`;
+}
+
+function setStatus(msg) {
+  document.getElementById('status').textContent = msg;
+}
+
+function logMove(notation) {
+  const el = document.getElementById('history');
+  const n = moveHistory.length;
+  const entry = n % 2 === 1 ? `${Math.ceil(n/2)}. ${notation} ` : `${notation}\n`;
+  el.textContent += entry;
+  el.scrollTop = el.scrollHeight;
+}
+
+function toggleHistory() {
+  histOpen = !histOpen;
+  document.getElementById('history-wrap').classList.toggle('open', histOpen);
+}
+
+// ── Boot ──────────────────────────────────────
+newGame();
+</script>
+
+</body>
+</html>

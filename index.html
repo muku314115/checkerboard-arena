@@ -6,25 +6,25 @@
   <title>Checkers</title>
   <style>
     :root {
-      --bg: #0f1117;
-      --surface: #1a1d2e;
-      --surface2: #252840;
-      --border: #2e3250;
-      --accent: #6c63ff;
-      --accent2: #ff6584;
-      --text: #e2e8f0;
-      --text2: #94a3b8;
-      --board-light: #f0d9b5;
-      --board-dark: #b58863;
-      --board-selected: #7fc97f;
-      --board-move: rgba(127, 201, 127, 0.45);
-      --board-capture: rgba(255, 100, 100, 0.35);
-      --p1: #e8e8e8;
+      --bg: #020f1a;
+      --surface: #061e30;
+      --surface2: #0a2d47;
+      --border: #0e4d6e;
+      --accent: #22d3ee;
+      --accent2: #34d399;
+      --text: #e0f7fa;
+      --text2: #67e8f9;
+      --board-light: #d1fae5;
+      --board-dark: #065f46;
+      --board-selected: #6ee7b7;
+      --board-move: rgba(110, 231, 183, 0.45);
+      --board-capture: rgba(251, 113, 133, 0.38);
+      --p1: #e0f2fe;
       --p1-king: #ffffff;
-      --p2: #2a2a2a;
-      --p2-king: #111111;
-      --p1-border: #aaaaaa;
-      --p2-border: #555555;
+      --p2: #064e3b;
+      --p2-king: #022c22;
+      --p1-border: #7dd3fc;
+      --p2-border: #059669;
       --radius: 12px;
       --cell: min(52px, 10.5vw);
     }
@@ -48,7 +48,7 @@
       font-size: clamp(1.6rem, 5vw, 2.4rem);
       font-weight: 700;
       letter-spacing: -0.5px;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      background: linear-gradient(135deg, #22d3ee, #34d399);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -81,8 +81,8 @@
       border: 2px solid;
       flex-shrink: 0;
     }
-    .chip-icon.p1 { background: var(--p1); border-color: var(--p1-border); }
-    .chip-icon.p2 { background: var(--p2); border-color: var(--p2-border); }
+    .chip-icon.p1 { background: radial-gradient(circle at 35% 35%, #f0f9ff, #bae6fd); border-color: var(--p1-border); }
+    .chip-icon.p2 { background: radial-gradient(circle at 35% 35%, #065f46, #022c22); border-color: var(--p2-border); }
 
     .turn-dot {
       width: 8px; height: 8px;
@@ -108,7 +108,7 @@
       border: 3px solid var(--border);
       border-radius: var(--radius);
       overflow: hidden;
-      box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+      box-shadow: 0 8px 40px rgba(6,95,70,0.5);
     }
 
     .cell {
@@ -131,10 +131,10 @@
       background: var(--board-capture);
     }
     .cell.move-target:hover::after {
-      background: rgba(127, 201, 127, 0.65);
+      background: rgba(110, 231, 183, 0.65);
     }
-    .cell.last-from { box-shadow: inset 0 0 0 3px rgba(108,99,255,0.5); }
-    .cell.last-to   { box-shadow: inset 0 0 0 3px rgba(108,99,255,0.8); }
+    .cell.last-from { box-shadow: inset 0 0 0 3px rgba(34,211,238,0.45); }
+    .cell.last-to   { box-shadow: inset 0 0 0 3px rgba(34,211,238,0.85); }
 
     /* ── Pieces ───────────────────────────── */
     .piece {
@@ -150,14 +150,14 @@
       font-size: calc(var(--cell) * 0.35);
     }
     .piece.p1 {
-      background: radial-gradient(circle at 35% 35%, #ffffff, #cccccc);
+      background: radial-gradient(circle at 35% 35%, #f0f9ff, #bae6fd);
       border: 2px solid var(--p1-border);
-      box-shadow: 0 3px 8px rgba(0,0,0,0.4), inset 0 1px 2px rgba(255,255,255,0.8);
+      box-shadow: 0 3px 8px rgba(34,211,238,0.4), inset 0 1px 2px rgba(255,255,255,0.9);
     }
     .piece.p2 {
-      background: radial-gradient(circle at 35% 35%, #555555, #111111);
+      background: radial-gradient(circle at 35% 35%, #065f46, #022c22);
       border: 2px solid var(--p2-border);
-      box-shadow: 0 3px 8px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.15);
+      box-shadow: 0 3px 8px rgba(6,78,59,0.7), inset 0 1px 2px rgba(52,211,153,0.3);
     }
     .piece.king::after {
       content: '♛';
@@ -165,13 +165,13 @@
       font-size: calc(var(--cell) * 0.3);
       line-height: 1;
     }
-    .piece.p1.king::after { color: #b8860b; text-shadow: 0 1px 2px rgba(0,0,0,0.3); }
-    .piece.p2.king::after { color: #ffd700; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+    .piece.p1.king::after { color: #0284c7; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+    .piece.p2.king::after { color: #34d399; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
 
     .piece:hover { transform: scale(1.08); }
     .piece.selected-piece {
       transform: scale(1.12) translateY(-4%);
-      box-shadow: 0 6px 16px rgba(108,99,255,0.5), inset 0 1px 2px rgba(255,255,255,0.8);
+      box-shadow: 0 6px 18px rgba(34,211,238,0.6), inset 0 1px 2px rgba(255,255,255,0.8);
     }
 
     /* ── Controls ─────────────────────────── */
@@ -193,10 +193,10 @@
       cursor: pointer;
       transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
     }
-    button:hover { background: var(--surface2); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+    button:hover { background: var(--surface2); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(34,211,238,0.2); }
     button:active { transform: translateY(0); }
-    button.primary { background: var(--accent); border-color: transparent; }
-    button.primary:hover { background: #7b72ff; }
+    button.primary { background: linear-gradient(135deg, #22d3ee, #34d399); border-color: transparent; color: #020f1a; font-weight: 700; }
+    button.primary:hover { filter: brightness(1.1); }
 
     /* ── Status message ───────────────────── */
     #status {
@@ -276,14 +276,14 @@
 <div id="scorebar">
   <div class="player-indicator" id="p1-ind">
     <div class="chip-icon p1"></div>
-    <span>White</span>
+    <span>Blue</span>
     <span class="cap-count" id="p1-caps">(0 cap.)</span>
     <div class="turn-dot"></div>
   </div>
   <span style="color:var(--border)">│</span>
   <div class="player-indicator inactive" id="p2-ind">
     <div class="chip-icon p2"></div>
-    <span>Black</span>
+    <span>Green</span>
     <span class="cap-count" id="p2-caps">(0 cap.)</span>
     <div class="turn-dot"></div>
   </div>
